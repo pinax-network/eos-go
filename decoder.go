@@ -851,7 +851,7 @@ func (d *Decoder) SafeReadUTF8String() (out string, err error) {
 
 func (d *Decoder) ReadString() (out string, err error) {
 	data, err := d.ReadByteArray()
-	out = string(data)
+	out = strings.ToValidUTF8(string(data), "�")
 	if tracer.Enabled() {
 		zlog.Debug("read string", zap.String("val", out))
 	}
