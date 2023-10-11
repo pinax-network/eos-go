@@ -290,6 +290,153 @@ func TestABI_decode(t *testing.T) {
 	assert.Equal(t, "value.base.field.1", gjson.GetBytes(out, "basefield1").String())
 }
 
+func Test_DecodeTableRowGibberish(t *testing.T) {
+
+	abiString := `
+{
+  "version": "eosio::abi/1.1",
+  "structs": [
+    {
+      "name": "defibox_row",
+      "base": "",
+      "fields": [
+        {
+          "name": "source",
+          "type": "extended_symbol"
+        },
+        {
+          "name": "pair_ids",
+          "type": "pair_symbol_code_uint64[]"
+        },
+        {
+          "name": "targets",
+          "type": "pair_symbol_code_extended_symbol[]"
+        }
+      ]
+    },
+    {
+      "name": "extended_symbol",
+      "base": "",
+      "fields": [
+        {
+          "name": "sym",
+          "type": "symbol"
+        },
+        {
+          "name": "contract",
+          "type": "name"
+        }
+      ]
+    },
+    {
+      "name": "pair_symbol_code_extended_symbol",
+      "base": "",
+      "fields": [
+        {
+          "name": "key",
+          "type": "symbol_code"
+        },
+        {
+          "name": "value",
+          "type": "extended_symbol"
+        }
+      ]
+    },
+    {
+      "name": "pair_symbol_code_uint64",
+      "base": "",
+      "fields": [
+        {
+          "name": "key",
+          "type": "symbol_code"
+        },
+        {
+          "name": "value",
+          "type": "uint64"
+        }
+      ]
+    },
+    {
+      "name": "setdefibox",
+      "base": "",
+      "fields": [
+        {
+          "name": "requirement",
+          "type": "extended_asset"
+        }
+      ]
+    },
+    {
+      "name": "setswap",
+      "base": "",
+      "fields": [
+        {
+          "name": "contract",
+          "type": "name"
+        }
+      ]
+    },
+    {
+      "name": "swap_row",
+      "base": "",
+      "fields": [
+        {
+          "name": "contract",
+          "type": "name"
+        },
+        {
+          "name": "tokens",
+          "type": "symbol_code[]"
+        },
+        {
+          "name": "ext_tokens",
+          "type": "extended_symbol[]"
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "name": "setdefibox",
+      "type": "setdefibox",
+      "ricardian_contract": "---\nspec_version: \"0.2.0\"\ntitle: setdefibox\nsummary: Set Defibox pairs\nicon: https://avatars1.githubusercontent.com/u/60660770#d6a1df4bbf2942f23c3a4485eb9942cb37c5348945e84be8c53e2ef9254ed8da\n---"
+    },
+    {
+      "name": "setswap",
+      "type": "setswap",
+      "ricardian_contract": "---\nspec_version: \"0.2.0\"\ntitle: setswap\nsummary: Set swap contract\nicon: https://avatars1.githubusercontent.com/u/60660770#d6a1df4bbf2942f23c3a4485eb9942cb37c5348945e84be8c53e2ef9254ed8da\n---"
+    }
+  ],
+  "tables": [
+    {
+      "name": "defibox",
+      "index_type": "i64",
+      "type": "defibox_row"
+    },
+    {
+      "name": "swap",
+      "index_type": "i64",
+      "type": "swap_row"
+    }
+  ]
+}
+`
+
+	abi, err := NewABI(strings.NewReader(abiString))
+	require.NoError(t, err)
+
+	tableDef := abi.TableForName("defibox")
+	require.NotNil(t, tableDef)
+
+	data, err := hex.DecodeString(`301d456a524c9353044549444f5300000155cb2a5fd5b2ca001a000000000000000155cb2a5fd5b2ca007055cb2a5fd5b2ca0455534454000000`)
+	require.NoError(t, err)
+
+	res, err := abi.DecodeTableRowTyped(tableDef.Type, data)
+	require.NoError(t, err)
+
+	fmt.Println("decoded table row", string(res))
+}
+
 func TestABI_decode_Float32FitNodeos(t *testing.T) {
 
 	abi := &ABI{
