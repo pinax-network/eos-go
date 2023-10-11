@@ -389,14 +389,31 @@ func (a *ABI) read(binaryDecoder *Decoder, fieldType string) (interface{}, error
 		symbol, e := binaryDecoder.ReadSymbol()
 		err = e
 		if err == nil {
-			value = fmt.Sprintf("%d,%s", symbol.Precision, symbol.Symbol)
+			sym := fmt.Sprintf("%d,%s", symbol.Precision, symbol.Symbol)
+			value = sym
+			_, err = StringToSymbol(sym)
 		}
 	case "symbol_code":
-		value, err = binaryDecoder.ReadSymbolCode()
+		symcode, e := binaryDecoder.ReadSymbolCode()
+		err = e
+		if err == nil {
+			value = symcode
+			_, err = StringToSymbolCode(symcode.String())
+		}
 	case "asset":
-		value, err = binaryDecoder.ReadAsset()
+		asset, e := binaryDecoder.ReadAsset()
+		err = e
+		if err == nil {
+			value = asset
+			_, err = StringToSymbol(asset.Symbol.String())
+		}
 	case "extended_asset":
-		value, err = binaryDecoder.ReadExtendedAsset()
+		extAsset, e := binaryDecoder.ReadExtendedAsset()
+		err = e
+		if err == nil {
+			value = extAsset
+			_, err = StringToSymbol(extAsset.Asset.Symbol.String())
+		}
 	default:
 		return nil, fmt.Errorf("read field of type [%s]: unknown type", fieldType)
 	}
