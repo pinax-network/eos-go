@@ -1,9 +1,11 @@
 package eos
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	bls12381 "github.com/consensys/gnark-crypto/ecc/bls12-381"
 	"io"
 	"io/ioutil"
 	"math"
@@ -44,6 +46,8 @@ var TypeSize = struct {
 	Checksum256 int
 	Checksum512 int
 
+	BLS381 int
+
 	PublicKey int
 	Signature int
 
@@ -83,6 +87,8 @@ var TypeSize = struct {
 	Checksum160: 20,
 	Checksum256: 32,
 	Checksum512: 64,
+
+	BLS381: 160,
 
 	PublicKey: 34,
 	Signature: 66,
@@ -357,6 +363,11 @@ func (d *Decoder) Decode(v interface{}, options ...DecodeOption) (err error) {
 	case *ecc.Signature:
 		var s ecc.Signature
 		s, err = d.ReadSignature()
+		rv.Set(reflect.ValueOf(s))
+		return
+	case *bls12381.E2:
+		var s bls12381.E2
+		s, err = d.ReadBLS381()
 		rv.Set(reflect.ValueOf(s))
 		return
 	case *Tstamp:
@@ -900,6 +911,29 @@ func (d *Decoder) ReadChecksum512() (out Checksum512, err error) {
 	if tracer.Enabled() {
 		zlog.Debug("read checksum512", zap.Stringer("hex", HexBytes(out)))
 	}
+	return
+}
+
+func (d *Decoder) ReadBLS381() (out bls12381.E2, err error) {
+
+	if d.remaining() < TypeSize.BLS381 {
+		err = fmt.Errorf("BLS381 required [%d] bytes, remaining [%d]", TypeSize.BLS381, d.remaining())
+		return
+	}
+
+	byteSlice := make([]byte, TypeSize.BLS381)
+	copy(byteSlice, d.data[d.pos:d.pos+TypeSize.BLS381])
+	d.pos += TypeSize.BLS381
+
+	err = bls12381.NewDecoder(bytes.NewReader(byteSlice)).Decode(&out)
+	if err != nil {
+		return out, fmt.Errorf("failed to decode BLS12-381 signature: %w", err)
+	}
+
+	if tracer.Enabled() {
+		zlog.Debug("read BLS381", zap.Stringer("hex", HexBytes(byteSlice)))
+	}
+
 	return
 }
 
