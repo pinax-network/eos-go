@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	bls12381 "github.com/consensys/gnark-crypto/ecc/bls12-381"
 	"io"
 	"io/ioutil"
 	"math"
@@ -60,8 +59,7 @@ func (tx *Transaction) SetExpiration(in time.Duration) {
 const (
 	EOS_ProtocolFeatureActivation BlockHeaderExtensionType = iota
 	EOS_ProducerScheduleChangeExtension
-	EOS_AdditionalBlockSignatureExtension
-	EOS_QuorumCertificateExtension
+	// EOS_InstantFinalityExtension
 )
 
 type BlockHeaderExtension interface {
@@ -75,10 +73,9 @@ type newBlockHeaderExtension func() BlockHeaderExtension
 
 var blockHeaderExtensions = map[string]blockHeaderExtensionMap{
 	"EOS": {
-		EOS_ProtocolFeatureActivation:         func() BlockHeaderExtension { return new(ProtocolFeatureActivationExtension) },
-		EOS_ProducerScheduleChangeExtension:   func() BlockHeaderExtension { return new(ProducerScheduleChangeExtension) },
-		EOS_AdditionalBlockSignatureExtension: func() BlockHeaderExtension { return new(AdditionalBlockSignatureExtension) },
-		EOS_QuorumCertificateExtension:        func() BlockHeaderExtension { return new(QuorumCertificateExtension) },
+		EOS_ProtocolFeatureActivation:       func() BlockHeaderExtension { return new(ProtocolFeatureActivationExtension) },
+		EOS_ProducerScheduleChangeExtension: func() BlockHeaderExtension { return new(ProducerScheduleChangeExtension) },
+		// EOS_InstantFinalityExtension:        func() BlockHeaderExtension { return new(InstantFinalityExtension) },
 	},
 }
 
@@ -185,32 +182,50 @@ func (e *ProducerScheduleChangeExtension) TypeID() BlockHeaderExtensionType {
 	return EOS_ProducerScheduleChangeExtension
 }
 
-type AdditionalBlockSignatureExtension struct {
-	Signatures []ecc.Signature `json:"signatures"`
-}
+//type InstantFinalityExtension struct {
+//	QCClaim QCClaim `json:"qc_claim"`
+//}
+//
+//type QCClaim struct {
+//	BlockNum   uint32 `json:"block_num"`
+//	IsStrongQC bool   `json:"is_strong_qc"`
+//}
+//
+//type FinalizerPolicyDiff struct {
+//	Generation uint32 `json:"generation"`
+//	Threshold  uint64 `json:"threshold"`
+//}
+//
+//func (e *InstantFinalityExtension) TypeID() BlockHeaderExtensionType {
+//	return EOS_InstantFinalityExtension
+//}
 
-func (e *AdditionalBlockSignatureExtension) TypeID() BlockHeaderExtensionType {
-	return EOS_AdditionalBlockSignatureExtension
-}
-
-type QuorumCertificateExtension struct {
-	QuorumCertificate QuorumCertificate `json:"qc"`
-}
-
-func (e *QuorumCertificateExtension) TypeID() BlockHeaderExtensionType {
-	return EOS_QuorumCertificateExtension
-}
-
-type QuorumCertificate struct {
-	BlockNum               uint32                 `json:"block_num"`
-	ValidQuorumCertificate ValidQuorumCertificate `json:"data"`
-}
-
-type ValidQuorumCertificate struct {
-	StrongVotes           []uint8     `json:"strong_votes" eos:"optional"`
-	WeakVotes             []uint8     `json:"weak_votes" eos:"optional"`
-	BlsAggregateSignature bls12381.E2 `json:"bls_aggregate_signature"`
-}
+//type AdditionalBlockSignatureExtension struct {
+//	Signatures []ecc.Signature `json:"signatures"`
+//}
+//
+//func (e *AdditionalBlockSignatureExtension) TypeID() BlockHeaderExtensionType {
+//	return EOS_AdditionalBlockSignatureExtension
+//}
+//
+//type QuorumCertificateExtension struct {
+//	QuorumCertificate QuorumCertificate `json:"qc"`
+//}
+//
+//func (e *QuorumCertificateExtension) TypeID() BlockHeaderExtensionType {
+//	return EOS_QuorumCertificateExtension
+//}
+//
+//type QuorumCertificate struct {
+//	BlockNum               uint32                 `json:"block_num"`
+//	ValidQuorumCertificate ValidQuorumCertificate `json:"data"`
+//}
+//
+//type ValidQuorumCertificate struct {
+//	StrongVotes           DynamicBitset `json:"strong_votes" eos:"optional"`
+//	WeakVotes             DynamicBitset `json:"weak_votes" eos:"optional"`
+//	BlsAggregateSignature bls12381.E2   `json:"bls_aggregate_signature"`
+//}
 
 func unmarshalTypeError(value interface{}, reflectTypeHost interface{}, target interface{}, field string) *json.UnmarshalTypeError {
 	return &json.UnmarshalTypeError{

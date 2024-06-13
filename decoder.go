@@ -355,6 +355,11 @@ func (d *Decoder) Decode(v interface{}, options ...DecodeOption) (err error) {
 		s, err = d.ReadChecksum256()
 		rv.SetBytes(s)
 		return
+	case *DynamicBitset:
+		var s DynamicBitset
+		s, err = d.ReadDynamicBitset()
+		rv.SetBytes(s)
+		return
 	case *ecc.PublicKey:
 		var p ecc.PublicKey
 		p, err = d.ReadPublicKey()
@@ -650,6 +655,30 @@ func (d *Decoder) ReadByteArray() (out []byte, err error) {
 	d.pos += int(l)
 	if tracer.Enabled() {
 		zlog.Debug("read byte array", zap.Stringer("hex", HexBytes(out)))
+	}
+	return
+}
+
+func (d *Decoder) ReadDynamicBitset() (out []byte, err error) {
+
+	l, err := d.ReadUint32()
+	if err != nil {
+		return nil, err
+	}
+
+	if l%8 != 0 {
+		return nil, fmt.Errorf("dynamic bitset: length=%d, must be multiple of 8", l)
+	}
+
+	l = l / 8
+	if len(d.data) < d.pos+int(l) {
+		return nil, fmt.Errorf("dynamic bitset: varlen=%d, missing %d bytes", l, d.pos+int(l)-len(d.data))
+	}
+
+	out = d.data[d.pos : d.pos+int(l)]
+	d.pos += int(l)
+	if tracer.Enabled() {
+		zlog.Debug("read dynamic bitset", zap.Stringer("hex", HexBytes(out)))
 	}
 	return
 }

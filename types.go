@@ -849,6 +849,22 @@ func (t *Checksum512) UnmarshalJSON(data []byte) (err error) {
 // be phased out.
 type SHA256Bytes = Checksum256
 
+type DynamicBitset []byte
+
+func (t DynamicBitset) MarshalJSON() ([]byte, error) {
+	return json.Marshal(hex.EncodeToString(t))
+}
+func (t *DynamicBitset) UnmarshalJSON(data []byte) (err error) {
+	var s string
+	err = json.Unmarshal(data, &s)
+	if err != nil {
+		return
+	}
+
+	*t, err = hex.DecodeString(s)
+	return
+}
+
 type Varuint32 uint32
 type Varint32 int32
 
