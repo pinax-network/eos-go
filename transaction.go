@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	bls12381 "github.com/consensys/gnark-crypto/ecc/bls12-381"
 	"io"
 	"io/ioutil"
 	"math"
@@ -59,6 +60,8 @@ func (tx *Transaction) SetExpiration(in time.Duration) {
 const (
 	EOS_ProtocolFeatureActivation BlockHeaderExtensionType = iota
 	EOS_ProducerScheduleChangeExtension
+	EOS_AdditionalBlockSignatureExtension
+	EOS_QuorumCertificateExtension
 )
 
 type BlockHeaderExtension interface {
@@ -72,8 +75,10 @@ type newBlockHeaderExtension func() BlockHeaderExtension
 
 var blockHeaderExtensions = map[string]blockHeaderExtensionMap{
 	"EOS": {
-		EOS_ProtocolFeatureActivation:       func() BlockHeaderExtension { return new(ProtocolFeatureActivationExtension) },
-		EOS_ProducerScheduleChangeExtension: func() BlockHeaderExtension { return new(ProducerScheduleChangeExtension) },
+		EOS_ProtocolFeatureActivation:         func() BlockHeaderExtension { return new(ProtocolFeatureActivationExtension) },
+		EOS_ProducerScheduleChangeExtension:   func() BlockHeaderExtension { return new(ProducerScheduleChangeExtension) },
+		EOS_AdditionalBlockSignatureExtension: func() BlockHeaderExtension { return new(AdditionalBlockSignatureExtension) },
+		EOS_QuorumCertificateExtension:        func() BlockHeaderExtension { return new(QuorumCertificateExtension) },
 	},
 }
 
@@ -178,6 +183,33 @@ type ProducerScheduleChangeExtension struct {
 
 func (e *ProducerScheduleChangeExtension) TypeID() BlockHeaderExtensionType {
 	return EOS_ProducerScheduleChangeExtension
+}
+
+type AdditionalBlockSignatureExtension struct {
+	Signatures []ecc.Signature `json:"signatures"`
+}
+
+func (e *AdditionalBlockSignatureExtension) TypeID() BlockHeaderExtensionType {
+	return EOS_AdditionalBlockSignatureExtension
+}
+
+type QuorumCertificateExtension struct {
+	QuorumCertificate QuorumCertificate `json:"qc"`
+}
+
+func (e *QuorumCertificateExtension) TypeID() BlockHeaderExtensionType {
+	return EOS_QuorumCertificateExtension
+}
+
+type QuorumCertificate struct {
+	BlockNum               uint32                 `json:"block_num"`
+	ValidQuorumCertificate ValidQuorumCertificate `json:"data"`
+}
+
+type ValidQuorumCertificate struct {
+	StrongVotes           []uint8     `json:"strong_votes" eos:"optional"`
+	WeakVotes             []uint8     `json:"weak_votes" eos:"optional"`
+	BlsAggregateSignature bls12381.E2 `json:"bls_aggregate_signature"`
 }
 
 func unmarshalTypeError(value interface{}, reflectTypeHost interface{}, target interface{}, field string) *json.UnmarshalTypeError {
